@@ -1,17 +1,19 @@
 const mongoose = require('mongoose');
 
-const postSchema = mongoose.Schema({
-    bannerImage: {
-        type: String, // Stores the image URL (Cloudinary or local path)
-        default: null,
+const bannerSchema = new mongoose.Schema(
+    {
+        bannerImages: {
+            type: [String], // Array of image URLs
+            required: true,
+            validate: [arrayLimit, '{PATH} must have at least one image.'],
+        },
     },
-    bannerId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'homeBanner', // References the 'User' collection
-        required: true,
-    },
-},
-    { timestamps: true } // Corrected from `timestamp: true`
+    { timestamps: true }
 );
 
-module.exports = mongoose.model('Banner', postSchema);
+// Custom validator to ensure array is not empty
+function arrayLimit(val) {
+    return val.length > 0;
+}
+
+module.exports = mongoose.model('Banner', bannerSchema);

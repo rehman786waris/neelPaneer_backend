@@ -1,4 +1,5 @@
 const { admin } = require('../firebase/firebaseAdmin');
+const User = require('../models/userModel'); // if you have a user model
 
 const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -11,7 +12,13 @@ const authenticate = async (req, res, next) => {
 
   try {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
-    req.user = decodedToken; // You can access this in your routes
+    const user = await User.findOne({ firebaseUid: decodedToken.uid });
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'User not found' });
+    }
+
+    req.user = user; // ✅ now has MongoDB _id
     next();
   } catch (err) {
     console.error("Auth middleware error:", err);
@@ -19,4 +26,7 @@ const authenticate = async (req, res, next) => {
   }
 };
 
+
 module.exports = authenticate;
+
+

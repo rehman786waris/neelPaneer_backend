@@ -2,12 +2,12 @@ const fs = require("fs");
 const { admin } = require("../firebase/firebaseAdmin");
 const { signupSchema } = require("../middlewares/validator");
 const User = require("../models/userModel");
-const uploadImageToFirebase = require('../utils/uploadImage');
+const uploadImage = require('../utils/uploadImage');
 
 /// Signup function
 exports.signup = async (req, res) => {
   try {
-    const { fullName, email, phoneNumber, idToken, address} = req.body;
+    const { fullName, email, phoneNumber, idToken, address } = req.body;
     console.log("Received Data:", req.body);
     console.log("Received File:", req.file);
 
@@ -16,7 +16,7 @@ exports.signup = async (req, res) => {
       return res.status(400).json({ success: false, message: "All fields are required!" });
     }
 
-    const { error } = signupSchema.validate({ fullName, email, phoneNumber, address});
+    const { error } = signupSchema.validate({ fullName, email, phoneNumber, address });
     if (error) {
       if (req.file) fs.unlinkSync(req.file.path);
       return res.status(400).json({ success: false, message: error.details[0].message });
@@ -43,7 +43,7 @@ exports.signup = async (req, res) => {
     // Upload profile image to Firebase Storage
     let profileImage = null;
     if (req.file) {
-      profileImage = await uploadImageToFirebase(req.file);
+      profileImage = await uploadImage.uploadImageToFirebase(req.file);
       fs.unlinkSync(req.file.path); // remove local file after upload
     }
 
@@ -199,7 +199,7 @@ exports.updateUserById = async (req, res) => {
     // Handle profile image upload
     let profileImage = user.profileImage;
     if (req.file) {
-      profileImage = await uploadImageToFirebase(req.file);
+      profileImage = await uploadImage.uploadImageToFirebase(req.file);
       fs.unlinkSync(req.file.path);
     }
 
