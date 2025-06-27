@@ -4,6 +4,8 @@ bannerController = require('../controllers/bannerController'); // ✅ fixed here
 const productController = require('../controllers/productController');
 const favouriteController = require('../controllers/favouriteController');
 const bookingController = require('../controllers/bookingController');
+const orderController = require('../controllers/orderController');
+
 
 
 
@@ -46,6 +48,14 @@ router.get('/bookings', authenticate, bookingController.getAllBookings);
 router.get('/bookings/:id', authenticate, bookingController.getBookingById);
 router.put('/bookings/:id', authenticate, bookingController.updateBooking);
 router.delete('/bookings/:id', authenticate, bookingController.deleteBooking);
+
+///Food orders
+router.post('/orders', authenticate, orderController.createOrder);
+router.get('/orders', authenticate, orderController.getAllOrders);
+router.get('/orders/:id', authenticate, orderController.getOrderById);
+router.put('/orders/:id', authenticate, orderController.updateOrder);
+router.delete('/orders/:id', authenticate, orderController.deleteOrder);
+
 
 
 module.exports = router;
