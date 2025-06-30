@@ -24,8 +24,6 @@ exports.signup = async (req, res) => {
 
     // 🔐 Firebase ID token verification
     const decoded = await admin.auth().verifyIdToken(idToken);
-
-    // ✅ Extract Firebase UID
     const firebaseUid = decoded.uid;
 
     if (decoded.phone_number !== phoneNumber) {
@@ -33,18 +31,18 @@ exports.signup = async (req, res) => {
       return res.status(401).json({ success: false, message: "Phone number mismatch!" });
     }
 
-    // Check if user already exists
+    // 🚫 Check if user already exists
     const existingUser = await User.findOne({ $or: [{ email }, { phoneNumber }, { firebaseUid }] });
     if (existingUser) {
       if (req.file) fs.unlinkSync(req.file.path);
       return res.status(409).json({ success: false, message: "User already exists!" });
     }
 
-    // Upload profile image to Firebase Storage
+    // ☁️ Upload profile image
     let profileImage = null;
     if (req.file) {
       profileImage = await uploadImage.uploadImageToFirebase(req.file);
-      fs.unlinkSync(req.file.path); // remove local file after upload
+      fs.unlinkSync(req.file.path);
     }
 
     const newUser = new User({
@@ -54,7 +52,9 @@ exports.signup = async (req, res) => {
       address,
       profileImage,
       isPhoneVerified: true,
-      firebaseUid, // ✅ Save UID from Firebase
+      firebaseUid,
+      isActive: true,   // Optional - already default
+      role: 'user'       // Prevent users from setting admin role manually
     });
 
     const result = await newUser.save();
@@ -75,6 +75,7 @@ exports.signup = async (req, res) => {
 };
 
 
+
 /// Login with Firebase Phone Number
 exports.login = async (req, res) => {
   try {
@@ -84,7 +85,6 @@ exports.login = async (req, res) => {
       return res.status(400).json({ success: false, message: "idToken is required!" });
     }
 
-    // 🔐 Verify ID token with Firebase Admin SDK
     const decoded = await admin.auth().verifyIdToken(idToken);
     const phoneNumber = decoded.phone_number;
 
@@ -92,17 +92,16 @@ exports.login = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid token: phone number not found." });
     }
 
-    // 🔎 Check if user exists in MongoDB
     const user = await User.findOne({ phoneNumber });
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found. Please sign up first."
-      });
+      return res.status(404).json({ success: false, message: "User not found. Please sign up first." });
     }
 
-    // ✅ Success
+    if (!user.isActive) {
+      return res.status(403).json({ success: false, message: "Account is disabled by admin." });
+    }
+
     res.status(200).json({
       success: true,
       message: "Login successful",
@@ -114,6 +113,7 @@ exports.login = async (req, res) => {
     res.status(500).json({ success: false, message: "Login failed" });
   }
 };
+
 
 
 /// Get all users
@@ -224,4 +224,42 @@ exports.updateUserById = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to update user" });
   }
 };
+
+exports.enableAndDisable = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+
+    if (typeof isActive !== 'boolean') {
+      return res.status(400).json({ success: false, message: "isActive must be a boolean (true/false)" });
+    }
+
+    // 1. Find user in MongoDB
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found in database" });
+    }
+
+    // 2. Update MongoDB user
+    user.isActive = isActive;
+    await user.save();
+
+    // 3. Update Firebase Auth user (disable = !isActive)
+    await admin.auth().updateUser(user.firebaseUid, {
+      disabled: !isActive
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `User has been ${isActive ? 'enabled' : 'disabled'}`,
+      user
+    });
+
+  } catch (err) {
+    console.error('Enable/Disable User Error:', err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 

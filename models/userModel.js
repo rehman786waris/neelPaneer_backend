@@ -47,9 +47,21 @@ const userSchema = mongoose.Schema({
     type: Number,
     default: 0,
   },
+
+  // 👇 Added fields
+  isActive: {
+    type: Boolean,
+    default: true, // true means user is enabled
+  },
+  role: {
+    type: String,
+    enum: ['user', 'admin'],
+    default: 'user',
+  }
+
 }, { timestamps: true });
 
-/// Capitalize full name before saving
+// Capitalize full name before saving
 userSchema.pre('save', function (next) {
   if (this.fullName) {
     this.fullName = this.fullName

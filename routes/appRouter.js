@@ -5,9 +5,7 @@ const productController = require('../controllers/productController');
 const favouriteController = require('../controllers/favouriteController');
 const bookingController = require('../controllers/bookingController');
 const orderController = require('../controllers/orderController');
-
-
-
+const reportController = require('../controllers/reportController');
 
 const uploads = require("../utils/cloudinary");
 const upload = require("../middlewares/bannerMiddleware");
@@ -20,6 +18,7 @@ router.post("/login", authController.login);
 router.get('/allUsers', authenticate, authController.getAllUsers);
 router.get('/user/:id', authenticate, authController.getUserById);
 router.delete('/user/:id', authenticate, authController.deleteUserById);
+router.put("/user/:id/status", authenticate, authController.enableAndDisable);
 router.put("/user/:id", authenticate, uploads.single("profileImage"), authController.updateUserById);
 
 /// Banner routes
@@ -56,6 +55,11 @@ router.get('/orders/:id', authenticate, orderController.getOrderById);
 router.put('/orders/:id', authenticate, orderController.updateOrder);
 router.delete('/orders/:id', authenticate, orderController.deleteOrder);
 
-
+/// Payment reports
+router.post('/reports', authenticate, reportController.createReport);
+router.get('/reports', authenticate, reportController.getAllReport);
+router.get('/reports/:id', authenticate, reportController.getReportById);
+router.put('/reports/:id', authenticate, reportController.updateReport);
+router.delete('/reports/:id', authenticate, reportController.deleteReport);
 
 module.exports = router;
