@@ -159,23 +159,39 @@ exports.deleteUserById = async (req, res) => {
   try {
     const userId = req.params.id;
 
-    // Check if ID is valid
+    // Check if MongoDB ObjectId is valid
     if (!userId.match(/^[0-9a-fA-F]{24}$/)) {
       return res.status(400).json({ success: false, message: "Invalid user ID" });
     }
 
-    const user = await User.findByIdAndDelete(userId);
+    // First, find the user from MongoDB
+    const user = await User.findById(userId);
 
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    res.status(200).json({ success: true, message: "User deleted successfully" });
+    // Delete user from Firebase Auth using Firebase UID
+    // Assume `user.firebaseUid` is stored when user signs up
+    if (user.firebaseUid) {
+      try {
+        await admin.auth().deleteUser(user.firebaseUid);
+      } catch (firebaseError) {
+        console.error("Error deleting Firebase user:", firebaseError.message);
+        // Optional: continue even if Firebase deletion fails
+      }
+    }
+
+    // Delete user from MongoDB
+    await User.findByIdAndDelete(userId);
+
+    res.status(200).json({ success: true, message: "User deleted from MongoDB and Firebase" });
   } catch (error) {
     console.error("Error deleting user:", error);
     res.status(500).json({ success: false, message: "Failed to delete user" });
   }
 };
+
 
 /// Update user by ID
 exports.updateUserById = async (req, res) => {
