@@ -19,6 +19,7 @@ router.get('/allUsers', authenticate, authController.getAllUsers);
 router.get('/user/:id', authenticate, authController.getUserById);
 router.delete('/user/:id', authenticate, authController.deleteUserById);
 router.put("/user/:id/status", authenticate, authController.enableAndDisable);
+router.post('/verify-phone', authController.verifyUserByPhone);
 router.put("/user/:id", authenticate, uploads.single("profileImage"), authController.updateUserById);
 
 /// Banner routes

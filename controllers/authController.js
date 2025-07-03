@@ -92,20 +92,20 @@ exports.login = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid token: phone number not found." });
     }
 
-    const user = await User.findOne({ phoneNumber });
+    const result = await User.findOne({ phoneNumber });
 
-    if (!user) {
+    if (!result) {
       return res.status(404).json({ success: false, message: "User not found. Please sign up first." });
     }
 
-    if (!user.isActive) {
+    if (!result.isActive) {
       return res.status(403).json({ success: false, message: "Account is disabled by admin." });
     }
 
     res.status(200).json({
       success: true,
       message: "Login successful",
-      user,
+      result,
     });
 
   } catch (error) {
@@ -119,11 +119,11 @@ exports.login = async (req, res) => {
 /// Get all users
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().sort({ createdAt: -1 });
+    const result = await User.find().sort({ createdAt: -1 });
     res.status(200).json({
       success: true,
-      total: users.length,
-      users
+      total: result.length,
+      result
     });
   } catch (error) {
     console.error("Error fetching users:", error);
@@ -141,13 +141,13 @@ exports.getUserById = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid user ID" });
     }
 
-    const user = await User.findById(userId);
+    const result = await User.findById(userId);
 
-    if (!user) {
+    if (!result) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    res.status(200).json({ success: true, user });
+    res.status(200).json({ success: true, result });
   } catch (error) {
     console.error("Error fetching user:", error);
     res.status(500).json({ success: false, message: "Failed to fetch user" });
@@ -165,17 +165,17 @@ exports.deleteUserById = async (req, res) => {
     }
 
     // First, find the user from MongoDB
-    const user = await User.findById(userId);
+    const result = await User.findById(userId);
 
-    if (!user) {
+    if (!result) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
     // Delete user from Firebase Auth using Firebase UID
     // Assume `user.firebaseUid` is stored when user signs up
-    if (user.firebaseUid) {
+    if (result.firebaseUid) {
       try {
-        await admin.auth().deleteUser(user.firebaseUid);
+        await admin.auth().deleteUser(result.firebaseUid);
       } catch (firebaseError) {
         console.error("Error deleting Firebase user:", firebaseError.message);
         // Optional: continue even if Firebase deletion fails
@@ -206,31 +206,31 @@ exports.updateUserById = async (req, res) => {
     }
 
     // Find user
-    const user = await User.findById(userId);
-    if (!user) {
+    const result = await User.findById(userId);
+    if (!result) {
       if (req.file) fs.unlinkSync(req.file.path);
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
     // Handle profile image upload
-    let profileImage = user.profileImage;
+    let profileImage = result.profileImage;
     if (req.file) {
       profileImage = await uploadImage.uploadImageToFirebase(req.file);
       fs.unlinkSync(req.file.path);
     }
 
     // Update fields
-    user.fullName = fullName || user.fullName;
-    user.email = email || user.email;
-    user.address = address || user.address;
-    user.profileImage = profileImage;
+    result.fullName = fullName || result.fullName;
+    result.email = email || result.email;
+    result.address = address || result.address;
+    result.profileImage = profileImage;
 
-    const updatedUser = await user.save();
+    const updatedUser = await result.save();
 
     res.status(200).json({
       success: true,
       message: "User updated successfully",
-      user: updatedUser,
+      result: updatedUser,
     });
   } catch (error) {
     console.error("Error updating user:", error);
@@ -251,30 +251,64 @@ exports.enableAndDisable = async (req, res) => {
     }
 
     // 1. Find user in MongoDB
-    const user = await User.findById(id);
+    const result = await User.findById(id);
 
-    if (!user) {
+    if (!result) {
       return res.status(404).json({ success: false, message: "User not found in database" });
     }
 
     // 2. Update MongoDB user
-    user.isActive = isActive;
-    await user.save();
+    result.isActive = isActive;
+    await result.save();
 
     // 3. Update Firebase Auth user (disable = !isActive)
-    await admin.auth().updateUser(user.firebaseUid, {
+    await admin.auth().updateUser(result.firebaseUid, {
       disabled: !isActive
     });
 
     res.status(200).json({
       success: true,
       message: `User has been ${isActive ? 'enabled' : 'disabled'}`,
-      user
+      result
     });
 
   } catch (err) {
     console.error('Enable/Disable User Error:', err);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+exports.verifyUserByPhone = async (req, res) => {
+  try {
+    const { phoneNumber } = req.body;
+
+    if (!phoneNumber) {
+      return res.status(400).json({ success: false, message: 'Phone number is required' });
+    }
+
+    // Check if user exists
+    let result = await User.findOne({ phoneNumber });
+
+    if (result) {
+      // User already exists
+      return res.status(200).json({
+        success: true,
+        message: 'User exists',
+        userExists: true,
+        result,
+      });
+    } else {
+      // User does not exist
+      return res.status(200).json({
+        success: true,
+        message: 'User does not exist',
+        userExists: false,
+      });
+    }
+
+  } catch (error) {
+    console.error('Error verifying user:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
