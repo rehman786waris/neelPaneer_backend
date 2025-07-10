@@ -7,32 +7,43 @@ const uploadImage = require('../utils/uploadImage');
 /// Signup function
 exports.signup = async (req, res) => {
   try {
-    const { fullName, email, phoneNumber, idToken, address } = req.body;
+    const { fullName, email, phoneNumber, idToken, address, role } = req.body;
     console.log("Received Data:", req.body);
     console.log("Received File:", req.file);
 
-    if (!fullName || !email || !phoneNumber || !idToken || !address) {
+    if (!fullName || !email || !idToken || !address || !role)  {
       if (req.file) fs.unlinkSync(req.file.path);
       return res.status(400).json({ success: false, message: "All fields are required!" });
     }
 
-    const { error } = signupSchema.validate({ fullName, email, phoneNumber, address });
+    const { error } = signupSchema.validate({ fullName, email, phoneNumber, address, role });
     if (error) {
       if (req.file) fs.unlinkSync(req.file.path);
       return res.status(400).json({ success: false, message: error.details[0].message });
     }
 
-    // 🔐 Firebase ID token verification
+    // 🔐 Verify Firebase ID Token
     const decoded = await admin.auth().verifyIdToken(idToken);
     const firebaseUid = decoded.uid;
 
-    if (decoded.phone_number !== phoneNumber) {
-      if (req.file) fs.unlinkSync(req.file.path);
-      return res.status(401).json({ success: false, message: "Phone number mismatch!" });
+    let isPhoneVerified = false;
+    if (decoded.phone_number) {
+      if (!phoneNumber || decoded.phone_number !== phoneNumber) {
+        if (req.file) fs.unlinkSync(req.file.path);
+        return res.status(401).json({ success: false, message: "Phone number mismatch!" });
+      }
+      isPhoneVerified = true;
     }
 
     // 🚫 Check if user already exists
-    const existingUser = await User.findOne({ $or: [{ email }, { phoneNumber }, { firebaseUid }] });
+    const existingUser = await User.findOne({
+      $or: [
+        { email },
+        ...(phoneNumber ? [{ phoneNumber }] : []),
+        { firebaseUid }
+      ]
+    });
+
     if (existingUser) {
       if (req.file) fs.unlinkSync(req.file.path);
       return res.status(409).json({ success: false, message: "User already exists!" });
@@ -48,13 +59,13 @@ exports.signup = async (req, res) => {
     const newUser = new User({
       fullName,
       email,
-      phoneNumber,
+      phoneNumber: phoneNumber || null,
       address,
       profileImage,
-      isPhoneVerified: true,
+      isPhoneVerified,
       firebaseUid,
-      isActive: true,   // Optional - already default
-      role: 'user'       // Prevent users from setting admin role manually
+      isActive: true,
+      role,
     });
 
     const result = await newUser.save();
@@ -76,6 +87,7 @@ exports.signup = async (req, res) => {
 
 
 
+
 /// Login with Firebase Phone Number
 exports.login = async (req, res) => {
   try {
@@ -85,34 +97,52 @@ exports.login = async (req, res) => {
       return res.status(400).json({ success: false, message: "idToken is required!" });
     }
 
+    // 🔐 Decode Firebase token
     const decoded = await admin.auth().verifyIdToken(idToken);
     const phoneNumber = decoded.phone_number;
+    const email = decoded.email;
 
-    if (!phoneNumber) {
-      return res.status(400).json({ success: false, message: "Invalid token: phone number not found." });
+    if (!phoneNumber && !email) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid token: neither phone number nor email found.",
+      });
     }
 
-    const result = await User.findOne({ phoneNumber });
+    // 🔍 Find user by phone or email
+    const user = await User.findOne({
+      $or: [{ phoneNumber }, { email }],
+    });
 
-    if (!result) {
-      return res.status(404).json({ success: false, message: "User not found. Please sign up first." });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found. Please sign up first.",
+      });
     }
 
-    if (!result.isActive) {
-      return res.status(403).json({ success: false, message: "Account is disabled by admin." });
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: "Account is disabled by admin.",
+      });
     }
 
     res.status(200).json({
       success: true,
       message: "Login successful",
-      result,
+      result: user,
     });
 
   } catch (error) {
     console.error("Login Error:", error);
-    res.status(500).json({ success: false, message: "Login failed" });
+    res.status(500).json({
+      success: false,
+      message: "Login failed",
+    });
   }
 };
+
 
 
 
