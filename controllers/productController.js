@@ -4,7 +4,7 @@ const uploadImage  = require('../utils/uploadImage');
 // CREATE
 exports.createProduct = async (req, res) => {
   try {
-    const { productName, productCategory, price, description, timeTag } = req.body;
+    const { productName, productCategory, price, description, timeTag, favourite } = req.body;
 
     if (!req.file) {
       return res.status(400).json({ message: "Product image is required." });
@@ -18,6 +18,7 @@ exports.createProduct = async (req, res) => {
       price,
       description,
       timeTag,
+      favourite,
       productImage: imageUrl,
     });
 
@@ -68,8 +69,8 @@ exports.getProductById = async (req, res) => {
 // UPDATE
 exports.updateProduct = async (req, res) => {
   try {
-    const { productName, productCategory, price, description, timeTag } = req.body;
-    const updateFields = { productName, productCategory, price, description, timeTag };
+    const { productName, productCategory, price, description, timeTag, favourite } = req.body;
+    const updateFields = { productName, productCategory, price, description, timeTag, favourite };
 
     if (req.file) {
       const imageUrl = await uploadImage.uploadSingleImageToFirebase(req.file);

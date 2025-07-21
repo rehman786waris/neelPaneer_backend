@@ -30,8 +30,8 @@ const productSchema = new mongoose.Schema(
     },
     timeTag: {
       type: String,
-      enum: ['brunch', 'evening'],
-      default: 'brunch',
+      enum: ['breakfast','lunch', 'dinner'],
+      default: 'breakfast',
     },
   },
   { timestamps: true }
