@@ -6,6 +6,9 @@ const favouriteController = require('../controllers/favouriteController');
 const bookingController = require('../controllers/bookingController');
 const orderController = require('../controllers/orderController');
 const reportController = require('../controllers/reportController');
+const restaurantController = require('../controllers/restaurantController');
+const summaryController = require('../controllers/summaryController');
+
 
 const uploads = require("../utils/cloudinary");
 const upload = require("../middlewares/bannerMiddleware");
@@ -62,5 +65,19 @@ router.get('/reports', authenticate, reportController.getAllReport);
 router.get('/reports/:id', authenticate, reportController.getReportById);
 router.put('/reports/:id', authenticate, reportController.updateReport);
 router.delete('/reports/:id', authenticate, reportController.deleteReport);
+
+/// Restaurant
+router.post("/restaurants", authenticate, restaurantController.createRestaurant);
+router.get("/restaurants", authenticate, restaurantController.getAllRestaurants);
+router.get("/restaurants/:id", authenticate, restaurantController.getRestaurantById);
+router.put("/restaurants/:id", authenticate, restaurantController.updateRestaurant);
+router.delete("/restaurants/:id", authenticate, restaurantController.deleteRestaurant);
+router.patch("/restaurants/:id/status", authenticate, restaurantController.updateRestaurantStatus);
+
+/// Today summary
+router.get('/dashboard/summary', authenticate, summaryController.getSummary);
+
+
+
 
 module.exports = router;
