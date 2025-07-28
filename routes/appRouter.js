@@ -1,6 +1,6 @@
 const express = require('express');
 const authController = require('../controllers/authController');
-bannerController = require('../controllers/bannerController'); // ✅ fixed here
+const bannerController = require('../controllers/bannerController');
 const productController = require('../controllers/productController');
 const favouriteController = require('../controllers/favouriteController');
 const bookingController = require('../controllers/bookingController');
@@ -51,6 +51,11 @@ router.get('/bookings', authenticate, bookingController.getAllBookings);
 router.get('/bookings/:id', authenticate, bookingController.getBookingById);
 router.put('/bookings/:id', authenticate, bookingController.updateBooking);
 router.delete('/bookings/:id', authenticate, bookingController.deleteBooking);
+router.get('/bookings/available-seats', authenticate, bookingController.checkAvailability);
+router.get('/bookings/available-slots', authenticate, bookingController.getAvailableSlotsByDate);
+
+
+
 
 ///Food orders
 router.post('/orders', authenticate, orderController.createOrder);

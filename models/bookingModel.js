@@ -11,37 +11,47 @@ const bookingSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Name is required'],
     },
+    email: {
+      type: String,
+      required: [true, 'Email is required'],
+      lowercase: true,
+      validate: {
+        validator: v =>
+          /^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/.test(v),
+        message: props => `${props.value} is not a valid email address`,
+      },
+    },
     phone: {
       type: String,
       required: [true, 'Phone number is required'],
       validate: {
         validator: v => /^\d{10,15}$/.test(v),
-        message: props => `${props.value} is not a valid phone number`
-      }
+        message: props => `${props.value} is not a valid phone number`,
+      },
+    },
+    postcode: {
+      type: String,
+      required: [true, 'Postcode is required'],
+      trim: true,
     },
     date: {
       type: Date,
       required: [true, 'Date is required'],
     },
-    time: {
+    timeSlot: {
       type: String,
-      required: [true, 'Time is required'],
-      enum: ['12pm', '1pm', '2pm', '3pm', '4pm', '5pm', '6pm', '7pm', '8pm'],
+      required: [true, 'Time slot is required'],
     },
-    guests: {
-      type: String,
-      required: [true, 'Guest count is required'],
-      enum: ['1 guest', '2 guests', '3 guests', '4 guests', '5+ guests'],
+    numberOfGuests: {
+      type: Number,
+      required: [true, 'Number of guests is required'],
+      min: [1, 'At least 1 guest is required'],
+      max: [46, 'Cannot book more than 46 guests'],
     },
     seatingPreference: {
       type: String,
       enum: ['indoor', 'outdoor'],
       default: 'indoor',
-    },
-    status: {
-      type: String,
-      enum: ['pending', 'confirmed', 'cancelled', 'completed'],
-      default: 'pending',
     },
     specialRequests: {
       type: String,

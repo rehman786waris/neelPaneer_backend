@@ -30,3 +30,7 @@ connectToMongo()
   .catch((err) => {
     console.error('Failed to start server:', err);
   });
+
+  //chmod 400 neelPaneerKey.pem  
+  //ssh -i "neelPaneerKey.pem" ubuntu@16.171.176.59
+  //cd Downloads  
