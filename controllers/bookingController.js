@@ -1,27 +1,55 @@
+const moment = require('moment');
+const mongoose = require('mongoose'); // ✅ add this line
 const Booking = require('../models/bookingModel');
 
 
+const allowedTimeSlots = {
+  weekday: [
+    '4:30 PM', '6:15 PM', '9:00 PM'
+  ],
+  weekend: [
+    '4:30 PM', '6:15 PM', '9:00 PM', '10:45'
+  ],
+};
+
+const MAX_GUESTS = 46;
+const MAX_ONLINE = 8;
+
+function getDayType(date) {
+  const day = moment(date).day(); // 0=Sun, 6=Sat
+  return (day === 5 || day === 6) ? 'weekend' : 'weekday';
+}
+
+// Normalize to start of day moment
+function normalizeDate(dateStr) {
+  return moment(dateStr).startOf('day');
+}
+
+// GET /bookings/available-slots?date=YYYY-MM-DD
 exports.getAvailableSlotsByDate = async (req, res) => {
   const { date } = req.query;
 
-  if (!date || isNaN(Date.parse(date))) {
-    return res.status(400).json({ message: 'Valid date is required' });
+  if (!date || !moment(date, moment.ISO_8601, true).isValid()) {
+    return res.status(400).json({ message: 'Valid date query param required' });
   }
 
-  const parsedDate = new Date(date);
-  const startOfDay = new Date(parsedDate);
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(parsedDate);
-  endOfDay.setHours(23, 59, 59, 999);
-
-  const dayType = getDayType(parsedDate);
-  const timeSlots = allowedTimeSlots[dayType];
-
   try {
+    const m = normalizeDate(date);
+    const dayType = getDayType(m);
+    const timeSlots = allowedTimeSlots[dayType];
+
+    if (!timeSlots) {
+      return res.status(400).json({ message: 'No time slots for this day' });
+    }
+
+    // Aggregate to get total guests booked per time slot
     const bookings = await Booking.aggregate([
       {
         $match: {
-          date: { $gte: startOfDay, $lte: endOfDay },
+          date: {
+            $gte: m.toDate(),
+            $lte: m.clone().endOf('day').toDate(),
+          },
         },
       },
       {
@@ -37,47 +65,97 @@ exports.getAvailableSlotsByDate = async (req, res) => {
       bookingsMap[_id] = totalGuests;
     });
 
-    const availableSlots = timeSlots.map((slot) => {
+    const slots = timeSlots.map(slot => {
       const booked = bookingsMap[slot] || 0;
-      const remaining = 46 - booked;
       return {
         timeSlot: slot,
-        remainingSeats: remaining,
-        isAvailable: remaining > 0,
+        remainingSeats: MAX_GUESTS - booked,
+        isAvailable: booked < MAX_GUESTS,
       };
     });
 
-    res.json({ date: parsedDate.toISOString(), slots: availableSlots });
+    res.json({ date: m.format('YYYY-MM-DD'), slots });
   } catch (err) {
-    console.error('Error fetching available slots:', err.message);
-    console.error(err.stack);
+    console.error('Error in getAvailableSlotsByDate:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
 
-
+// GET /bookings/available-seats?date=YYYY-MM-DD&timeSlot=HH:mm AM/PM
 exports.checkAvailability = async (req, res) => {
   const { date, timeSlot } = req.query;
 
-  if (!date || !timeSlot) {
-    return res.status(400).json({ message: 'Date and timeSlot are required' });
+  if (!date || !timeSlot || !moment(date, moment.ISO_8601, true).isValid()) {
+    return res.status(400).json({ message: 'Date and timeSlot query params required' });
   }
-
-  if (isNaN(Date.parse(date))) {
-    return res.status(400).json({ message: 'Invalid date format' });
-  }
-
-  const parsedDate = new Date(date);
-  const startOfDay = new Date(parsedDate);
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(parsedDate);
-  endOfDay.setHours(23, 59, 59, 999);
 
   try {
+    const m = normalizeDate(date);
+
+    const result = await Booking.aggregate([
+      {
+        $match: {
+          date: { $gte: m.toDate(), $lte: m.clone().endOf('day').toDate() },
+          timeSlot,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$numberOfGuests' },
+        },
+      },
+    ]);
+
+    const totalBooked = result[0]?.total || 0;
+    const remainingSeats = MAX_GUESTS - totalBooked;
+
+    res.json({ remainingSeats });
+  } catch (err) {
+    console.error('Error in checkAvailability:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// POST /bookings
+exports.createBooking = async (req, res) => {
+  try {
+    const {
+      userId,
+      fullName,
+      email,
+      phone,
+      postcode,
+      date,
+      timeSlot,
+      numberOfGuests,
+      seatingPreference,
+      specialRequests,
+    } = req.body;
+
+    if (!moment(date, moment.ISO_8601, true).isValid()) {
+      return res.status(400).json({ message: 'Invalid date format' });
+    }
+    if (typeof timeSlot !== 'string') {
+      return res.status(400).json({ message: 'timeSlot must be a string' });
+    }
+    if (numberOfGuests > MAX_ONLINE) {
+      return res.status(400).json({
+        message: `Online bookings allowed for up to ${MAX_ONLINE} guests only. Please call for larger groups.`,
+      });
+    }
+
+    const m = normalizeDate(date);
+    const dayType = getDayType(m);
+
+    if (!allowedTimeSlots[dayType].includes(timeSlot)) {
+      return res.status(400).json({ message: `Invalid time slot for ${dayType}` });
+    }
+
     const existing = await Booking.aggregate([
       {
         $match: {
-          date: { $gte: startOfDay, $lte: endOfDay },
+          date: { $gte: m.toDate(), $lte: m.clone().endOf('day').toDate() },
           timeSlot,
         },
       },
@@ -90,167 +168,151 @@ exports.checkAvailability = async (req, res) => {
     ]);
 
     const totalBooked = existing[0]?.total || 0;
-    const remaining = 46 - totalBooked;
 
-    res.json({ remainingSeats: remaining });
+    if (totalBooked + numberOfGuests > MAX_GUESTS) {
+      return res.status(400).json({
+        message: `Only ${MAX_GUESTS - totalBooked} seats are available for this time slot.`,
+      });
+    }
+
+    const booking = new Booking({
+      userId,
+      fullName,
+      email,
+      phone,
+      postcode,
+      date: m.toDate(),
+      timeSlot,
+      numberOfGuests,
+      seatingPreference,
+      specialRequests,
+    });
+
+    const saved = await booking.save();
+    res.status(201).json(saved);
   } catch (err) {
-    console.error('Error checking availability:', err.message);
-    console.error(err.stack);
+    console.error('Error creating booking:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
 
-  
-
-
-// Day-based allowed time slot logic
-const allowedTimeSlots = {
-    weekday: [
-        '4:30 PM', '5:00 PM', '5:30 PM', '6:00 PM', '6:30 PM',
-        '7:00 PM', '7:30 PM', '8:00 PM', '8:30 PM', '9:00 PM', '9:30 PM',
-    ],
-    weekend: [
-        '4:30 PM', '5:00 PM', '5:30 PM', '6:00 PM', '6:30 PM',
-        '7:00 PM', '7:30 PM', '8:00 PM', '8:30 PM', '9:00 PM', '9:30 PM',
-        '10:00 PM', '10:30 PM',
-    ],
-};
-
-const getDayType = (date) => {
-    const day = new Date(date).getDay(); // 0 = Sunday, 6 = Saturday
-    return (day === 5 || day === 6) ? 'weekend' : 'weekday';
-};
-
-// CREATE Booking
-exports.createBooking = async (req, res) => {
-    try {
-      const {
-        userId, fullName, email, phone, postcode,
-        date, timeSlot, numberOfGuests, seatingPreference, specialRequests
-      } = req.body;
-  
-      // Validate date and timeSlot format
-      if (isNaN(Date.parse(date)) || typeof timeSlot !== 'string') {
-        return res.status(400).json({ message: 'Invalid date or timeSlot format' });
-      }
-  
-      // Parse and normalize date to start of day (midnight)
-      const parsedDate = new Date(date);
-      parsedDate.setHours(0, 0, 0, 0);
-  
-      // Enforce max 8 guests online booking
-      if (numberOfGuests > 8) {
-        return res.status(400).json({
-          message: 'Online bookings are allowed for up to 8 guests. Please call for larger groups.',
-        });
-      }
-  
-      // Validate timeSlot based on weekday/weekend
-      const dayType = getDayType(parsedDate);
-      if (!allowedTimeSlots[dayType].includes(timeSlot)) {
-        return res.status(400).json({
-          message: `The selected time slot is not available on ${dayType === 'weekday' ? 'weekdays' : 'weekends'}.`,
-        });
-      }
-  
-      // Define start and end of day for query
-      const startOfDay = new Date(parsedDate);
-      startOfDay.setHours(0, 0, 0, 0);
-  
-      const endOfDay = new Date(parsedDate);
-      endOfDay.setHours(23, 59, 59, 999);
-  
-      // Check available seats in the timeSlot on that day
-      const existingBookings = await Booking.aggregate([
-        {
-          $match: {
-            date: { $gte: startOfDay, $lte: endOfDay },
-            timeSlot,
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: '$numberOfGuests' },
-          },
-        },
-      ]);
-  
-      const totalBooked = existingBookings[0]?.total || 0;
-      const remainingSeats = 46 - totalBooked;
-  
-      if (numberOfGuests > remainingSeats) {
-        return res.status(400).json({
-          message: `Only ${remainingSeats} seats are available for this time slot.`,
-        });
-      }
-  
-      // Create new booking with normalized date
-      const booking = new Booking({
-        userId,
-        fullName,
-        email,
-        phone,
-        postcode,
-        date: parsedDate,  // Normalized date at midnight
-        timeSlot,
-        numberOfGuests,
-        seatingPreference,
-        specialRequests,
-      });
-  
-      const saved = await booking.save();
-  
-      res.status(201).json(saved);
-    } catch (err) {
-      console.error('Error creating booking:', err);
-      res.status(500).json({ message: 'Server error' });
-    }
-  };
-  
-
-// GET all bookings
-exports.getAllBookings = async (req, res) => {
-    try {
-        const bookings = await Booking.find().sort({ date: 1, timeSlot: 1 });
-        res.json(bookings);
-    } catch (err) {
-        res.status(500).json({ message: 'Server error' });
-    }
-};
-
-// GET one booking by ID
-exports.getBookingById = async (req, res) => {
-    try {
-        const booking = await Booking.findById(req.params.id);
-        if (!booking) return res.status(404).json({ message: 'Booking not found' });
-        res.json(booking);
-    } catch (err) {
-        res.status(500).json({ message: 'Server error' });
-    }
-};
-
-// UPDATE booking
+// PUT /bookings/:id
 exports.updateBooking = async (req, res) => {
-    try {
-        const updated = await Booking.findByIdAndUpdate(req.params.id, req.body, {
-            new: true,
-            runValidators: true,
-        });
-        if (!updated) return res.status(404).json({ message: 'Booking not found' });
-        res.json(updated);
-    } catch (err) {
-        res.status(500).json({ message: 'Server error' });
+  try {
+    const { id } = req.params;
+    const {
+      date,
+      timeSlot,
+      numberOfGuests,
+      fullName,
+      email,
+      phone,
+      postcode,
+      seatingPreference,
+      specialRequests,
+    } = req.body;
+
+    const existingBooking = await Booking.findById(id);
+    if (!existingBooking) {
+      return res.status(404).json({ message: 'Booking not found' });
     }
+
+    if (!moment(date, moment.ISO_8601, true).isValid()) {
+      return res.status(400).json({ message: 'Invalid date format' });
+    }
+
+    if (numberOfGuests > MAX_ONLINE) {
+      return res.status(400).json({
+        message: `Online bookings allowed for up to ${MAX_ONLINE} guests only.`,
+      });
+    }
+
+    const m = normalizeDate(date);
+    const dayType = getDayType(m);
+
+    if (!allowedTimeSlots[dayType].includes(timeSlot)) {
+      return res.status(400).json({ message: `Invalid time slot for ${dayType}` });
+    }
+
+    // Check availability excluding current booking
+    const existing = await Booking.aggregate([
+      {
+        $match: {
+          _id: { $ne: existingBooking._id },
+          date: { $gte: m.toDate(), $lte: m.clone().endOf('day').toDate() },
+          timeSlot,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$numberOfGuests' },
+        },
+      },
+    ]);
+
+    const totalBooked = existing[0]?.total || 0;
+    if (totalBooked + numberOfGuests > MAX_GUESTS) {
+      return res.status(400).json({
+        message: `Only ${MAX_GUESTS - totalBooked} seats available for this time slot.`,
+      });
+    }
+
+    Object.assign(existingBooking, {
+      date: m.toDate(),
+      timeSlot,
+      numberOfGuests,
+      fullName,
+      email,
+      phone,
+      postcode,
+      seatingPreference,
+      specialRequests,
+    });
+
+    const updated = await existingBooking.save();
+    res.json(updated);
+  } catch (err) {
+    console.error('Error updating booking:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
 };
 
-// DELETE booking
+// GET /bookings
+exports.getAllBookings = async (req, res) => {
+  try {
+    const bookings = await Booking.find().sort({ date: 1, timeSlot: 1 });
+    res.json(bookings);
+  } catch (err) {
+    console.error('Error fetching bookings:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// GET /bookings/:id
+exports.getBookingById = async (req, res) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'Invalid booking id' });
+  }
+  try {
+    const booking = await Booking.findById(id);
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    res.json(booking);
+  } catch (err) {
+    console.error('Error fetching booking:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// DELETE /bookings/:id
 exports.deleteBooking = async (req, res) => {
-    try {
-        const deleted = await Booking.findByIdAndDelete(req.params.id);
-        if (!deleted) return res.status(404).json({ message: 'Booking not found' });
-        res.json({ message: 'Booking deleted' });
-    } catch (err) {
-        res.status(500).json({ message: 'Server error' });
-    }
+  try {
+    const deleted = await Booking.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Booking not found' });
+    res.json({ message: 'Booking deleted' });
+  } catch (err) {
+    console.error('Error deleting booking:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
 };
