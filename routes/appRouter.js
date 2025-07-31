@@ -8,6 +8,8 @@ const orderController = require('../controllers/orderController');
 const reportController = require('../controllers/reportController');
 const restaurantController = require('../controllers/restaurantController');
 const summaryController = require('../controllers/summaryController');
+const notificationController = require('../controllers/notificationController');
+const deviceController = require('../controllers/deviceController');
 
 
 const uploads = require("../utils/cloudinary");
@@ -82,6 +84,22 @@ router.patch("/restaurants/:id/status", authenticate, restaurantController.updat
 /// Today summary
 router.get('/dashboard/summary', authenticate, summaryController.getSummary);
 
+// Push Notification 
+router.post("/send-notification", authenticate, notificationController.sendNotification);
+router.post('/notification', authenticate, notificationController.createNotification);
+router.get('/notification', authenticate, notificationController.getAllNotifications);
+router.get('/notification/:id', authenticate, notificationController.getNotificationById);
+router.put('/notification/:id/mark-read', authenticate, notificationController.markAsRead);
+router.put('/notification/mark-all-read', authenticate, notificationController.markAllAsRead);
+router.delete('/notification/:id', authenticate, notificationController.deleteNotification);
+router.delete('/notification', authenticate, notificationController.deleteAllNotifications);
+
+
+router.post('/device', authenticate, deviceController.createDevice);
+router.get('/device', authenticate, deviceController.getAllDevices);
+router.get('/device/:id', authenticate, deviceController.getDeviceById);
+router.put('/device/:id', authenticate, deviceController.updateDevice);
+router.delete('/device/:id', authenticate, deviceController.deleteDevice);
 
 
 
