@@ -8,13 +8,6 @@ const orderItemSchema = new mongoose.Schema({
     imageUrl: { type: String }
 });
 
-const deliveryAddressSchema = new mongoose.Schema({
-    street: { type: String, required: true },
-    city: { type: String, required: true },
-    postalCode: { type: String, required: true },
-    country: { type: String, required: true }
-});
-
 const orderSchema = new mongoose.Schema({
     userId: { type: String, required: true },
     items: { type: [orderItemSchema], required: true },
@@ -25,16 +18,16 @@ const orderSchema = new mongoose.Schema({
     voucherCode: { type: String, default: null },
     paymentMethod: {
         type: String,
-        enum: ['Cash on Delivery', 'Credit Card', 'Wallet'],
+        enum: ['cash', 'card'],
         required: true
     },
     status: {
         type: String,
-        enum: ['pending', 'confirmed', 'preparing', 'delivered', 'cancelled'],
+        enum: ['pending', 'confirmed', 'preparing', 'delivered', 'cancelled', 'completed'],
         default: 'pending'
     },
     timestamp: { type: Date, default: Date.now },
-    deliveryAddress: { type: deliveryAddressSchema, required: true },
+    deliveryAddress: { type: String, required: true },
     notes: { type: String }
 });
 

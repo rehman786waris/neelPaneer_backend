@@ -65,6 +65,7 @@ router.get('/orders', authenticate, orderController.getAllOrders);
 router.get('/orders/:id', authenticate, orderController.getOrderById);
 router.put('/orders/:id', authenticate, orderController.updateOrder);
 router.delete('/orders/:id', authenticate, orderController.deleteOrder);
+router.patch('/orders/:id/status', authenticate, orderController.updateOrderStatus);
 
 /// Payment reports
 router.post('/reports', authenticate, reportController.createReport);
