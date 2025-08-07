@@ -1,14 +1,28 @@
 const PaymentReport = require('../models/reportModel'); // Adjust path as needed
 
 exports.createReport = async (req, res) => {
-    try {
-        const report = new PaymentReport(req.body);
-        await report.save();
-        res.status(201).json(report);
-    } catch (err) {
-        res.status(400).json({ error: err.message });
+    const { paymentMethod, status } = req.body;
+  
+    const validMethods = ['card', 'cash'];
+    const validStatuses = ['pending', 'completed', 'failed', 'refunded'];
+  
+    if (paymentMethod && !validMethods.includes(paymentMethod)) {
+      return res.status(400).json({ error: 'Invalid payment method' });
     }
-};
+  
+    if (status && !validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+  
+    try {
+      const report = new PaymentReport(req.body);
+      await report.save();
+      res.status(201).json(report);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  };
+  
 
 exports.getAllReport = async (req, res) => {
     try {
@@ -41,18 +55,32 @@ exports.getReportById = async (req, res) => {
 };
 
 exports.updateReport = async (req, res) => {
-    try {
-        const updatedReport = await PaymentReport.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { new: true, runValidators: true }
-        );
-        if (!updatedReport) return res.status(404).json({ message: 'Report not found' });
-        res.json(updatedReport);
-    } catch (err) {
-        res.status(400).json({ error: err.message });
+    const { paymentMethod, status } = req.body;
+  
+    const validMethods = ['card', 'cash'];
+    const validStatuses = ['pending', 'completed', 'failed', 'refunded'];
+  
+    if (paymentMethod && !validMethods.includes(paymentMethod)) {
+      return res.status(400).json({ error: 'Invalid payment method' });
     }
-};
+  
+    if (status && !validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+  
+    try {
+      const updatedReport = await PaymentReport.findByIdAndUpdate(
+        req.params.id,
+        req.body,
+        { new: true, runValidators: true }
+      );
+      if (!updatedReport) return res.status(404).json({ message: 'Report not found' });
+      res.json(updatedReport);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  };
+  
 
 exports.deleteReport = async (req, res) => {
     try {

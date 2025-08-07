@@ -16,7 +16,7 @@ const paymentReportSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: [ 'stripe','Cash on Delivery'],
+    enum: [ 'card','cash'],
     required: true
   },
   transactionId: {
