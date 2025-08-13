@@ -6,6 +6,10 @@ const paymentReportSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  orderId: {
+    type: String,
+    required: true
+  },
   amount: {
     type: Number,
     required: true
