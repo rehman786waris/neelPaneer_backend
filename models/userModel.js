@@ -47,17 +47,25 @@ const userSchema = mongoose.Schema({
     type: Number,
     default: 0,
   },
-
-  // 👇 Added fields
   isActive: {
     type: Boolean,
-    default: true, // true means user is enabled
+    default: true,
   },
   role: {
     type: String,
     required: [true, 'Role is required'],
     enum: ['user', 'admin'],
     default: 'user',
+  },
+
+  // 👇 Stripe integration fields
+  stripeCustomerId: {
+    type: String,
+    default: null,
+  },
+  stripePaymentMethodId: {
+    type: String, // saved card ID
+    default: null,
   }
 
 }, { timestamps: true });

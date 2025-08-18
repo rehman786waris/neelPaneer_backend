@@ -1,10 +1,11 @@
+require('dotenv').config(); // load .env variables
 const cors = require('cors');
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const { connectToMongo } = require('./db');
 const verificationRoutes = require('./routes/appRouter');
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const app = express();
 
 // Middleware
@@ -23,13 +24,13 @@ app.get('/', (req, res) => {
 connectToMongo()
   .then(() => {
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Server running at http://0.0.0.0:${PORT}`);
+      console.log(`🚀 Server running at http://0.0.0.0:${PORT}`);
     });
-    
   })
   .catch((err) => {
-    console.error('Failed to start server:', err);
+    console.error('❌ Failed to start server:', err);
   });
+
 
   //chmod 400 neelPaneerKey.pem  
   //ssh -i "neelPaneerKey.pem" ubuntu@16.171.176.59

@@ -14,8 +14,8 @@ const orderSchema = new mongoose.Schema({
     subTotal: { type: Number, required: true },
     deliveryCharge: { type: Number, default: 0 },
     discount: { type: Number, default: 0 },
-    total: { type: Number, required: true ,default: '30 to 45 min'},
-    deliverTime:{type: String, required: true},
+    total: { type: Number, required: true },
+    deliverTime: { type: String, required: true, default: '30 to 45 min' },
     voucherCode: { type: String, default: null },
     paymentMethod: {
         type: String,

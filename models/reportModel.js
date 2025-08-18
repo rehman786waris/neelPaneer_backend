@@ -20,13 +20,17 @@ const paymentReportSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: [ 'card','cash'],
+    enum: ['card', 'cash'],
     required: true
   },
   transactionId: {
     type: String,
     required: true,
     unique: true
+  },
+  stripePaymentId: { // <--- NEW
+    type: String,
+    default: null
   },
   status: {
     type: String,

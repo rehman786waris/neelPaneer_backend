@@ -5,11 +5,11 @@ const productController = require('../controllers/productController');
 const favouriteController = require('../controllers/favouriteController');
 const bookingController = require('../controllers/bookingController');
 const orderController = require('../controllers/orderController');
-const reportController = require('../controllers/reportController');
 const restaurantController = require('../controllers/restaurantController');
 const summaryController = require('../controllers/summaryController');
 const notificationController = require('../controllers/notificationController');
 const deviceController = require('../controllers/deviceController');
+const paymentController = require('../controllers/paymentController');
 
 
 const uploads = require("../utils/cloudinary");
@@ -68,11 +68,12 @@ router.delete('/orders/:id', authenticate, orderController.deleteOrder);
 router.patch('/orders/:id/status', authenticate, orderController.updateOrderStatus);
 
 /// Payment reports
-router.post('/reports', authenticate, reportController.createReport);
-router.get('/reports', authenticate, reportController.getAllReport);
-router.get('/reports/:id', authenticate, reportController.getReportById);
-router.put('/reports/:id', authenticate, reportController.updateReport);
-router.delete('/reports/:id', authenticate, reportController.deleteReport);
+router.post('/payments', authenticate, paymentController.createPayment);
+router.get('/reports', authenticate, paymentController.getAllReports);
+router.get('/reports/:id', authenticate, paymentController.getReportById);
+router.put('/reports/:id', authenticate, paymentController.updateReport);
+router.delete('/reports/:id', authenticate, paymentController.deleteReport);
+
 
 /// Restaurant
 router.post("/restaurants", authenticate, restaurantController.createRestaurant);
