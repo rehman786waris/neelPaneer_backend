@@ -6,51 +6,79 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 // ---------------------- CREATE PAYMENT ----------------------
 exports.createPayment = async (req, res) => {
   try {
-    const { userId, orderId, amount, currency = 'GBP', paymentMethodId, description } = req.body;
-    if (!userId || !amount || !orderId) {
-      return res.status(400).json({ error: 'userId, orderId and amount are required' });
+    const { userId, orderId, amount, currency = 'GBP', paymentMethod, paymentMethodId, description } = req.body;
+
+    // Validate input
+    if (!userId || !amount || !orderId || !paymentMethod) {
+      return res.status(400).json({ error: 'userId, orderId, amount, orderId and paymentMethod are required' });
     }
 
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-
-    if (!user.stripeCustomerId) {
-      if (!paymentMethodId) return res.status(400).json({ error: 'Payment method ID required' });
-
-      const customer = await stripe.customers.create({
-        email: user.email,
-        payment_method: paymentMethodId,
-        invoice_settings: { default_payment_method: paymentMethodId },
+    // ✅ CASH Payment (No Stripe)
+    if (paymentMethod === 'cash') {
+      const report = new PaymentReport({
+        userId,
+        orderId,
+        amount,
+        currency,
+        paymentMethod: 'cash',
+        transactionId: `cash_${Date.now()}`, // simple unique id
+        status: 'pending', // you can update later when delivered
+        description: description || `Cash payment for order ${orderId}`,
       });
 
-      user.stripeCustomerId = customer.id;
-      user.stripePaymentMethodId = paymentMethodId;
-      await user.save();
+      await report.save();
+      return res.status(201).json({ success: true, message: 'Cash payment recorded', report });
     }
 
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount,
-      currency,
-      customer: user.stripeCustomerId,
-      payment_method: user.stripePaymentMethodId,
-      off_session: true,
-      confirm: true,
-    });
+    // ✅ CARD Payment (Stripe)
+    if (paymentMethod === 'card') {
+      const user = await User.findById(userId);
+      if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const report = new PaymentReport({
-      userId,
-      orderId,
-      amount,
-      currency,
-      paymentMethod: 'card',
-      transactionId: paymentIntent.id,
-      stripePaymentId: paymentIntent.id,
-      status: paymentIntent.status,
-      description: description || `Payment for order ${orderId}`,
-    });
+      // Create customer if not exists
+      if (!user.stripeCustomerId) {
+        if (!paymentMethodId) return res.status(400).json({ error: 'Payment method ID required for card payment' });
 
-    await report.save();
-    res.status(201).json({ success: true, paymentIntent, report });
+        const customer = await stripe.customers.create({
+          email: user.email,
+          payment_method: paymentMethodId,
+          invoice_settings: { default_payment_method: paymentMethodId },
+        });
+
+        user.stripeCustomerId = customer.id;
+        user.stripePaymentMethodId = paymentMethodId;
+        await user.save();
+      }
+
+      // Create payment intent
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount,
+        currency,
+        customer: user.stripeCustomerId,
+        payment_method: user.stripePaymentMethodId,
+        off_session: true,
+        confirm: true,
+      });
+
+      const report = new PaymentReport({
+        userId,
+        orderId,
+        amount,
+        currency,
+        paymentMethod: 'card',
+        transactionId: paymentIntent.id,
+        stripePaymentId: paymentIntent.id,
+        status: paymentIntent.status,
+        description: description || `Card payment for order ${orderId}`,
+      });
+
+      await report.save();
+      return res.status(201).json({ success: true, paymentIntent, report });
+    }
+
+    // Invalid method
+    return res.status(400).json({ error: 'Invalid payment method. Use "cash" or "card".' });
+
   } catch (err) {
     console.error(err);
     if (err.code === 'authentication_required') {
