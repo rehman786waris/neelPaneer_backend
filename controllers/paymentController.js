@@ -62,7 +62,6 @@ exports.createPayment = async (req, res) => {
 
       const report = new PaymentReport({
         userId,
-        orderId,
         amount,
         currency,
         paymentMethod: 'card',
