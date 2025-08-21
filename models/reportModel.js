@@ -12,34 +12,35 @@ const paymentReportSchema = new mongoose.Schema({
   },
   currency: {
     type: String,
-    default: 'GBP'
+    default: 'GBP',
+    trim: true
   },
   paymentMethod: {
     type: String,
-    enum: ['card', 'cash'],
+    enum: ['card', 'cash', 'card_saved'],
     required: true
   },
   transactionId: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    trim: true
   },
-  stripePaymentId: { // <--- NEW
+  stripePaymentId: {
     type: String,
-    default: null
+    trim: true
   },
   status: {
     type: String,
-    enum: ['pending', 'completed', 'failed', 'refunded'],
+    enum: ['pending', 'completed', 'failed', 'requires_action'],
     default: 'pending'
   },
   description: {
-    type: String
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
+    type: String,
+    trim: true
   }
+}, {
+  timestamps: true // adds createdAt and updatedAt automatically
 });
 
 module.exports = mongoose.model('PaymentReport', paymentReportSchema);

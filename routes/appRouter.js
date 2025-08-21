@@ -67,8 +67,12 @@ router.put('/orders/:id', authenticate, orderController.updateOrder);
 router.delete('/orders/:id', authenticate, orderController.deleteOrder);
 router.patch('/orders/:id/status', authenticate, orderController.updateOrderStatus);
 
-/// Payment reports
-router.post('/payments', authenticate, paymentController.createPayment);
+// ---------------------- PAYMENTS ----------------------
+router.post('/payments', authenticate, paymentController.createPayment);         // cash / immediate card
+router.post('/payments/setup-intent', authenticate, paymentController.createSetupIntent); // save card (SetupIntent)
+router.post('/payments/charge', authenticate, paymentController.chargeSavedCard); // charge saved card
+
+// ---------------------- REPORTS ----------------------
 router.get('/reports', authenticate, paymentController.getAllReports);
 router.get('/reports/:id', authenticate, paymentController.getReportById);
 router.put('/reports/:id', authenticate, paymentController.updateReport);
