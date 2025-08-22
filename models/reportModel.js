@@ -1,9 +1,13 @@
 const mongoose = require('mongoose');
 
-const paymentReportSchema = new mongoose.Schema({
+const reportSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
+    required: true
+  },
+  orderId: {
+    type: String,
     required: true
   },
   amount: {
@@ -17,7 +21,7 @@ const paymentReportSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['card', 'cash', 'card_saved'],
+    enum: ['card', 'cash'],
     required: true
   },
   transactionId: {
@@ -43,4 +47,4 @@ const paymentReportSchema = new mongoose.Schema({
   timestamps: true // adds createdAt and updatedAt automatically
 });
 
-module.exports = mongoose.model('PaymentReport', paymentReportSchema);
+module.exports = mongoose.model('Report', reportSchema);

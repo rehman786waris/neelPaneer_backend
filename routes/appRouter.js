@@ -10,6 +10,7 @@ const summaryController = require('../controllers/summaryController');
 const notificationController = require('../controllers/notificationController');
 const deviceController = require('../controllers/deviceController');
 const paymentController = require('../controllers/paymentController');
+const reportController = require('../controllers/reportController');
 
 
 const uploads = require("../utils/cloudinary");
@@ -73,10 +74,11 @@ router.post('/payments/setup-intent', authenticate, paymentController.createSetu
 router.post('/payments/charge', authenticate, paymentController.chargeSavedCard); // charge saved card
 
 // ---------------------- REPORTS ----------------------
-router.get('/reports', authenticate, paymentController.getAllReports);
-router.get('/reports/:id', authenticate, paymentController.getReportById);
-router.put('/reports/:id', authenticate, paymentController.updateReport);
-router.delete('/reports/:id', authenticate, paymentController.deleteReport);
+router.post('/reports', authenticate, reportController.createReport);
+router.get('/reports', authenticate, reportController.getAllReports);
+router.get('/reports/:id', authenticate, reportController.getReportById);
+router.put('/reports/:id', authenticate, reportController.updateReport);
+router.delete('/reports/:id', authenticate, reportController.deleteReport);
 
 
 /// Restaurant
