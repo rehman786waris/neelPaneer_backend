@@ -5,81 +5,74 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 // ---------------------- CREATE IMMEDIATE CARD PAYMENT ----------------------
 exports.createPayment = async (req, res) => {
   try {
-    // Ensure paymentMethodId is available from the request body
-    const { userId, amount, description, currency = 'GBP', paymentMethodId } = req.body;
+    const {
+      userId,
+      amount,
+      currency = "GBP",
+      paymentMethodId,
+      description,
+    } = req.body;
 
-    if (!userId || !amount || !description || !currency || !paymentMethodId) {
-      return res.status(400).json({ error: 'userId, amount, currency, description, and paymentMethodId are required' });
+    // Validate input
+    if (!userId || !amount || !paymentMethodId) {
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
-    if (!Number.isInteger(amount) || amount <= 0) {
-      return res.status(400).json({ error: 'Amount must be a positive integer in smallest currency unit' });
-    }
-
+    // Find the user
     const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
 
-    // Create Stripe customer if not exists
+    // If no Stripe customer exists, create one
     if (!user.stripeCustomerId) {
-      const customer = await stripe.customers.create({ email: user.email });
+      const customer = await stripe.customers.create({
+        email: user.email,
+        name: user.name,
+      });
       user.stripeCustomerId = customer.id;
       await user.save();
     }
 
-    // Pass the paymentMethodId to the PaymentIntent at creation
-    // This allows immediate confirmation without relying on automatic methods
+    // 🔑 Attach payment method to customer (so it can be reused)
+    if (paymentMethodId) {
+      try {
+        // Attach card to customer
+        await stripe.paymentMethods.attach(paymentMethodId, {
+          customer: user.stripeCustomerId,
+        });
+
+        // Optionally set this as the default card
+        await stripe.customers.update(user.stripeCustomerId, {
+          invoice_settings: { default_payment_method: paymentMethodId },
+        });
+      } catch (err) {
+        // Ignore if already attached
+        if (err.code !== "resource_already_exists") {
+          throw err;
+        }
+      }
+    }
+
+    // Create a PaymentIntent
     const paymentIntent = await stripe.paymentIntents.create({
-      amount,
+      amount: amount * 100, // Stripe expects cents
       currency,
       customer: user.stripeCustomerId,
-      description,
-      payment_method: paymentMethodId,
+      payment_method: paymentMethodId || undefined,
       return_url:'http://16.171.176.59:3000/api/auth',
       confirm: true,
       off_session: false,
+      description,
     });
 
-    res.status(201).json({
-      success: true,
-      clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id,
-      status: paymentIntent.status,
-    });
-  } catch (err) {
-    console.error('❌ createPayment error:', err);
-    res.status(500).json({ error: err.message, code: err.code });
+    res.status(201).json({ success: true, paymentIntent });
+  } catch (error) {
+    console.error("Payment error:", error);
+    res.status(500).json({ error: error.message });
   }
 };
 
-
-// ---------------------- CREATE SETUP INTENT (SAVE CARD) ----------------------
-exports.createSetupIntent = async (req, res) => {
-  try {
-    const { userId } = req.body;
-    if (!userId) return res.status(400).json({ error: 'userId is required' });
-
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-
-    // Create Stripe customer if not exists
-    if (!user.stripeCustomerId) {
-      const customer = await stripe.customers.create({ email: user.email });
-      user.stripeCustomerId = customer.id;
-      await user.save();
-    }
-
-    const setupIntent = await stripe.setupIntents.create({
-      customer: user.stripeCustomerId,
-      payment_method_types: ['card'],
-      usage: 'off_session', // ensures future charges work
-    });
-
-    res.json({ clientSecret: setupIntent.client_secret });
-  } catch (err) {
-    console.error('❌ createSetupIntent error:', err);
-    res.status(500).json({ error: err.message, code: err.code });
-  }
-};
 
 // ---------------------- CHARGE SAVED CARD ----------------------
 exports.chargeSavedCard = async (req, res) => {
@@ -129,6 +122,40 @@ exports.chargeSavedCard = async (req, res) => {
       });
     }
 
+    res.status(500).json({ error: err.message, code: err.code });
+  }
+};
+
+// ---------------------- LIST SAVED CARDS ----------------------
+exports.listSavedCards = async (req, res) => {
+  try {
+    const { id } = req.params;  // ✅ get userId from URL
+    if (!id) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    const user = await User.findById(id);
+    if (!user || !user.stripeCustomerId) {
+      return res.status(404).json({ error: 'User or Stripe customer not found' });
+    }
+
+    const paymentMethods = await stripe.paymentMethods.list({
+      customer: user.stripeCustomerId,
+      type: 'card',
+    });
+
+    const cards = paymentMethods.data.map(pm => ({
+      id: pm.id,
+      brand: pm.card.brand,
+      last4: pm.card.last4,
+      expMonth: pm.card.exp_month,
+      expYear: pm.card.exp_year,
+      funding: pm.card.funding,
+    }));
+
+    res.status(200).json({ success: true, cards });
+  } catch (err) {
+    console.error('❌ listSavedCards error:', err);
     res.status(500).json({ error: err.message, code: err.code });
   }
 };
