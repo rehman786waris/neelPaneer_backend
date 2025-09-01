@@ -7,7 +7,7 @@ const uploadImage = require('../utils/uploadImage');
 /// Signup function
 exports.signup = async (req, res) => {
   try {
-    const { fullName, email, phoneNumber, idToken, address, role } = req.body;
+    const { fullName, email, phoneNumber, idToken, address, role, deviceToken } = req.body;
     console.log("Received Data:", req.body);
     console.log("Received File:", req.file);
 
@@ -61,6 +61,7 @@ exports.signup = async (req, res) => {
       email,
       phoneNumber: phoneNumber || null,
       address,
+      deviceToken: deviceToken || null,
       profileImage,
       isPhoneVerified,
       firebaseUid,
@@ -342,5 +343,40 @@ exports.verifyUserByPhone = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
+
+// PATCH: Update discount
+exports.updateDiscount = async (req, res) => {
+  try {
+    const { discount } = req.body;
+
+    if (discount === undefined || discount === null) {
+      return res.status(400).json({ success: false, message: "Discount is required" });
+    }
+
+    if (isNaN(discount) || discount < 0 || discount > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Discount must be a number between 0 and 100",
+      });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { discount },
+      { new: true, runValidators: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.json({ success: true, message: "Discount updated successfully", data: user });
+  } catch (error) {
+    console.error("Error updating discount:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 
 

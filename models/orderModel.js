@@ -10,6 +10,8 @@ const orderItemSchema = new mongoose.Schema({
 
 const orderSchema = new mongoose.Schema({
     userId: { type: String, required: true },
+    phone: { type: String, required: true },
+    userName: { type: String, required: true },
     items: { type: [orderItemSchema], required: true },
     subTotal: { type: Number, required: true },
     deliveryCharge: { type: Number, default: 0 },
