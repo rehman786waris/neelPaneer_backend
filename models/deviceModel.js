@@ -1,18 +1,18 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const deviceSchema = new mongoose.Schema({
-    userId: {
-        type: String,
-        required: true
+const deviceSchema = new mongoose.Schema(
+    {
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
+        },
+        deviceToken: {
+            type: String,   // FCM token
+            required: false,
+        },
     },
-    deviceId: {
-        type: String,
-        required: true
-    },
-    firbaseUid: {
-        type: String,
-        required: true
-    },
-}, { timestamps: true });
+    { timestamps: true }
+);
 
-module.exports = mongoose.model('Device', deviceSchema);
+module.exports = mongoose.model("Device", deviceSchema);

@@ -30,6 +30,10 @@ const userSchema = mongoose.Schema({
     required: [true, 'Address is required'],
     trim: true,
   },
+  discount: {
+    type: String,
+    default: null,
+  },
   profileImage: {
     type: String,
     default: null,

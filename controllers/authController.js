@@ -68,6 +68,7 @@ exports.signup = async (req, res) => {
       role,
     });
 
+
     const result = await newUser.save();
 
     res.status(201).json({
