@@ -3,19 +3,21 @@ const Notification = require("../models/notificationModel");
 
 
 // Send Push Notification
+// 📱 Mobile Notification
 exports.sendNotification = async (req, res) => {
   const { deviceId, title, body } = req.body;
 
   if (!deviceId || !title || !body) {
-    return res.status(400).json({ error: "Missing required fields: device_id, title, body" });
+    return res.status(400).json({ error: "Missing required fields: deviceId, title, body" });
   }
 
   const message = {
+    token: deviceId,
     notification: {
       title,
       body,
     },
-    token: deviceId,
+    // ❌ no webpush here
   };
 
   try {
@@ -25,13 +27,52 @@ exports.sendNotification = async (req, res) => {
       messageId: response,
     });
   } catch (error) {
-    console.error("FCM Error:", error);
+    console.error("FCM Mobile Error:", error);
     return res.status(500).json({
       success: false,
       error: error.message,
     });
   }
 };
+
+// 💻 Web Notification
+exports.sendNotificationWeb = async (req, res) => {
+  const { deviceId, title, body } = req.body;
+
+  if (!deviceId || !title || !body) {
+    return res.status(400).json({ error: "Missing required fields: deviceId, title, body" });
+  }
+
+  const message = {
+    token: deviceId,
+    notification: {
+      title,
+      body,
+    },
+    webpush: {
+      notification: {
+        title: title,
+        body: body,
+      },
+    },
+  };
+
+  try {
+    const response = await admin.messaging().send(message);
+    return res.status(200).json({
+      success: true,
+      messageId: response,
+    });
+  } catch (error) {
+    console.error("FCM Web Error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+
 
 // Create Notification
 exports.createNotification = async (req, res) => {

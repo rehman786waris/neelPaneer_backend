@@ -95,6 +95,8 @@ router.get('/dashboard/summary', authenticate, summaryController.getSummary);
 
 // Push Notification 
 router.post("/send-notification", authenticate, notificationController.sendNotification);
+router.post("/send-notification-web", authenticate, notificationController.sendNotificationWeb);
+
 router.post('/notification', authenticate, notificationController.createNotification);
 router.get('/notification', authenticate, notificationController.getAllNotifications);
 router.get('/notification/:id', authenticate, notificationController.getNotificationById);
