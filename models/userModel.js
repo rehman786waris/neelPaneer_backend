@@ -34,10 +34,6 @@ const userSchema = mongoose.Schema({
     type: String,
     default: null,
   },
-  deviceToken: {
-    type: String,
-    default: null,
-  },
   profileImage: {
     type: String,
     default: null,

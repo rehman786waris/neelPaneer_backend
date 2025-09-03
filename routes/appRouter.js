@@ -8,7 +8,7 @@ const orderController = require('../controllers/orderController');
 const restaurantController = require('../controllers/restaurantController');
 const summaryController = require('../controllers/summaryController');
 const notificationController = require('../controllers/notificationController');
-const deviceController = require('../controllers/deviceController');
+const fcmController = require("../controllers/fcmController");
 const paymentController = require('../controllers/paymentController');
 const reportController = require('../controllers/reportController');
 
@@ -106,11 +106,9 @@ router.delete('/notification/:id', authenticate, notificationController.deleteNo
 router.delete('/notification', authenticate, notificationController.deleteAllNotifications);
 
 
-router.post('/device', authenticate, deviceController.createDevice);
-router.get('/device', authenticate, deviceController.getAllDevices);
-router.get('/device/:id', authenticate, deviceController.getDeviceById);
-router.put('/device/:id', authenticate, deviceController.updateDevice);
-router.delete('/device/:id', authenticate, deviceController.deleteDevice);
+router.post("/fcm/save", authenticate, fcmController.saveUserDeviceToken);
+router.get("/fcm/:userId", authenticate, fcmController.getUserDeviceToken);
+
 
 
 

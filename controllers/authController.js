@@ -7,7 +7,7 @@ const uploadImage = require('../utils/uploadImage');
 /// Signup function
 exports.signup = async (req, res) => {
   try {
-    const { fullName, email, phoneNumber, idToken, address, role, deviceToken } = req.body;
+    const { fullName, email, phoneNumber, idToken, address, role } = req.body;
     console.log("Received Data:", req.body);
     console.log("Received File:", req.file);
 
@@ -61,7 +61,6 @@ exports.signup = async (req, res) => {
       email,
       phoneNumber: phoneNumber || null,
       address,
-      deviceToken: deviceToken || null,
       profileImage,
       isPhoneVerified,
       firebaseUid,
