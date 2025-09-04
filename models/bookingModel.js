@@ -24,10 +24,6 @@ const bookingSchema = new mongoose.Schema(
     phone: {
       type: String,
       required: [true, 'Phone number is required'],
-      validate: {
-        validator: v => /^\d{10,15}$/.test(v),
-        message: props => `${props.value} is not a valid phone number`,
-      },
     },
     postcode: {
       type: String,
