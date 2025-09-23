@@ -1,4 +1,4 @@
-const { admin } = require("../firebase/firebaseAdmin");
+const { admin } = require("../config/firebaseAdmin");
 const Notification = require("../models/notificationModel");
 
 

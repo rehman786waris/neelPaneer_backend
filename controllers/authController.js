@@ -1,5 +1,5 @@
 const fs = require("fs");
-const { admin } = require("../firebase/firebaseAdmin");
+const { admin } = require("../config/firebaseAdmin");
 const { signupSchema } = require("../middlewares/validator");
 const User = require("../models/userModel");
 const uploadImage = require('../utils/uploadImage');

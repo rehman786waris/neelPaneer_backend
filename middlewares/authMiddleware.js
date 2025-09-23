@@ -1,4 +1,4 @@
-const { admin } = require('../firebase/firebaseAdmin');
+const { admin } = require('../config/firebaseAdmin');
 const User = require('../models/userModel'); // if you have a user model
 
 const authenticate = async (req, res, next) => {

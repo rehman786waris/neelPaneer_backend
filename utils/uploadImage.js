@@ -1,5 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
-const { bucket } = require('../firebase/firebaseAdmin');
+const { bucket } = require('../config/firebaseAdmin');
 const path = require('path');
 const fs = require('fs');
 
