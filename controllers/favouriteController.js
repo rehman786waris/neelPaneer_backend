@@ -38,17 +38,17 @@ exports.removeFavourite = async (req, res) => {
   }
 };
 
-/// Get All Favourites
-exports.getFavourites = async (req, res) => {
+/// Get All Favourites by User ID
+exports.getFavouritesByUser = async (req, res) => {
   try {
-    const userId = req.user._id;
-
+    const userId = req.params.id;
     const favourites = await Favourite.find({ userId }).populate('productId');
     const products = favourites.map(fav => fav.productId);
 
     res.status(200).json({ success: true, products });
   } catch (error) {
-    console.error('Get Favourites Error:', error);
+    console.error('Get Favourites by User Error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+

@@ -47,7 +47,7 @@ router.delete('/products/:id', authenticate, productController.deleteProduct);
 ///Favourite products 
 router.post('/favourites', authenticate, favouriteController.addFavourite);
 router.delete('/favourites/:productId', authenticate, favouriteController.removeFavourite);
-router.get('/favourites', authenticate, favouriteController.getFavourites);
+router.get('/favourites/:id', authenticate, favouriteController.getFavouritesByUser);
 
 ///Booking table
 router.post('/bookings', authenticate, bookingController.createBooking);
