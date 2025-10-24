@@ -1,10 +1,11 @@
 const Product = require('../models/productModel');
-const uploadImage  = require('../utils/uploadImage');
+const uploadImage = require('../utils/uploadImage');
+const Favourite = require('../models/favouriteModel'); // ensure this exists if used later
 
 // CREATE
 exports.createProduct = async (req, res) => {
   try {
-    const { productName, productCategory, price, description, timeTag, favourite } = req.body;
+    const { productName, productCategory, price, description, timeTag } = req.body;
 
     if (!req.file) {
       return res.status(400).json({ message: "Product image is required." });
@@ -18,7 +19,6 @@ exports.createProduct = async (req, res) => {
       price,
       description,
       timeTag,
-      favourite,
       productImage: imageUrl,
     });
 
@@ -32,26 +32,36 @@ exports.createProduct = async (req, res) => {
 
 // GET ALL with filters
 exports.getAllProducts = async (req, res) => {
-    try {
-      const { productCategory, timeTag, search } = req.query;
-      const filter = {};
-  
-      if (productCategory) filter.productCategory = productCategory;
-      if (timeTag) filter.timeTag = timeTag;
-  
-      if (search) {
-        filter.productName = { $regex: search, $options: "i" }; // i = case-insensitive
-      }
-  
-      const products = await Product.find(filter).sort({ createdAt: -1 });
-  
-      res.status(200).json({ success: true, products });
-    } catch (err) {
-      console.error("Get Products Error:", err);
-      res.status(500).json({ success: false, message: "Server error" });
+  try {
+    const userId = req.user?._id; // get from token (if logged in)
+    const { productCategory, timeTag, search } = req.query;
+    const filter = {};
+
+    if (productCategory) filter.productCategory = productCategory;
+    if (timeTag) filter.timeTag = timeTag;
+    if (search) filter.productName = { $regex: search, $options: "i" };
+
+    const products = await Product.find(filter).sort({ createdAt: -1 });
+
+    // If logged in, get user's favourites
+    let favourites = [];
+    if (userId) {
+      favourites = await Favourite.find({ userId }).select('productId');
     }
-  };
-  
+
+    const favSet = new Set(favourites.map(f => f.productId.toString()));
+
+    const productsWithFav = products.map(p => ({
+      ...p._doc,
+      isFavourite: favSet.has(p._id.toString()),
+    }));
+
+    res.status(200).json({ success: true, products: productsWithFav });
+  } catch (err) {
+    console.error("Get Products Error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
 
 // GET BY ID
 exports.getProductById = async (req, res) => {
@@ -69,8 +79,8 @@ exports.getProductById = async (req, res) => {
 // UPDATE
 exports.updateProduct = async (req, res) => {
   try {
-    const { productName, productCategory, price, description, timeTag, favourite } = req.body;
-    const updateFields = { productName, productCategory, price, description, timeTag, favourite };
+    const { productName, productCategory, price, description, timeTag } = req.body;
+    const updateFields = { productName, productCategory, price, description, timeTag };
 
     if (req.file) {
       const imageUrl = await uploadImage.uploadSingleImageToFirebase(req.file);

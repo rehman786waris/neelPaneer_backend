@@ -1,11 +1,9 @@
-const jwt = require('jsonwebtoken');
 const Favourite = require('../models/favouriteModel');
-const Product = require('../models/productModel');
 
-/// Add to Favourites
+// ✅ Add to favourites
 exports.addFavourite = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user._id; // from auth middleware
     const { productId } = req.body;
 
     // Check if already favourited
@@ -24,13 +22,17 @@ exports.addFavourite = async (req, res) => {
   }
 };
 
-/// Remove from Favourites
+// ✅ Remove from favourites
 exports.removeFavourite = async (req, res) => {
   try {
     const userId = req.user._id;
     const { productId } = req.params;
 
-    await Favourite.findOneAndDelete({ userId, productId });
+    const removed = await Favourite.findOneAndDelete({ userId, productId });
+    if (!removed) {
+      return res.status(404).json({ success: false, message: 'Favourite not found' });
+    }
+
     res.status(200).json({ success: true, message: 'Removed from favourites' });
   } catch (error) {
     console.error('Remove Favourite Error:', error);
@@ -38,10 +40,11 @@ exports.removeFavourite = async (req, res) => {
   }
 };
 
-/// Get All Favourites by User ID
+// ✅ Get all favourites by user
 exports.getFavouritesByUser = async (req, res) => {
   try {
     const userId = req.params.id;
+
     const favourites = await Favourite.find({ userId }).populate('productId');
     const products = favourites.map(fav => fav.productId);
 
@@ -51,4 +54,3 @@ exports.getFavouritesByUser = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
-
