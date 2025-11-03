@@ -54,7 +54,7 @@ router.post('/bookings', authenticate, bookingController.createBooking);
 router.get('/bookings/available-seats', authenticate, bookingController.checkAvailability);
 router.get('/bookings/available-slots', authenticate, bookingController.getAvailableSlotsByDate);
 router.get('/bookings', authenticate, bookingController.getAllBookings);
-router.get('/bookings/:id', authenticate, bookingController.getBookingById); // ← move this after the specific ones
+router.get('/bookings/user/:userId', authenticate, bookingController.getBookingsByUserId); // ← move this after the specific ones
 router.put('/bookings/:id', authenticate, bookingController.updateBooking);
 router.delete('/bookings/:id', authenticate, bookingController.deleteBooking);
 

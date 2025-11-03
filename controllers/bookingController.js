@@ -290,20 +290,27 @@ exports.getAllBookings = async (req, res) => {
 };
 
 // GET /bookings/:id
-exports.getBookingById = async (req, res) => {
-  const { id } = req.params;
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ message: 'Invalid booking id' });
+exports.getBookingsByUserId = async (req, res) => {
+  const { userId } = req.params; // userId passed in the route, e.g., /bookings/user/:userId
+
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    return res.status(400).json({ message: 'Invalid user id' });
   }
+
   try {
-    const booking = await Booking.findById(id);
-    if (!booking) return res.status(404).json({ message: 'Booking not found' });
-    res.json(booking);
+    const bookings = await Booking.find({ userId }); // find all bookings belonging to this user
+
+    if (!bookings || bookings.length === 0) {
+      return res.status(404).json({ message: 'No bookings found for this user' });
+    }
+
+    res.json(bookings);
   } catch (err) {
-    console.error('Error fetching booking:', err);
+    console.error('Error fetching bookings by user:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
+
 
 // DELETE /bookings/:id
 exports.deleteBooking = async (req, res) => {
