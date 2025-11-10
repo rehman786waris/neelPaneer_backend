@@ -1,14 +1,23 @@
+// controllers/productController.js
 const Product = require('../models/productModel');
 const uploadImage = require('../utils/uploadImage');
-const Favourite = require('../models/favouriteModel'); // ensure this exists if used later
+const Favourite = require('../models/favouriteModel');
 
 // CREATE
 exports.createProduct = async (req, res) => {
   try {
-    const { productName, productCategory, price, description, timeTag } = req.body;
+    const {
+      productName,
+      productCategory,
+      price,
+      description,
+      timeTag,
+      ageRestriction,
+      outOfStock,
+    } = req.body;
 
     if (!req.file) {
-      return res.status(400).json({ message: "Product image is required." });
+      return res.status(400).json({ success: false, message: 'Product image is required.' });
     }
 
     const imageUrl = await uploadImage.uploadSingleImageToFirebase(req.file);
@@ -19,31 +28,32 @@ exports.createProduct = async (req, res) => {
       price,
       description,
       timeTag,
+      ageRestriction,
+      outOfStock,
       productImage: imageUrl,
     });
 
     await newProduct.save();
     res.status(201).json({ success: true, product: newProduct });
   } catch (err) {
-    console.error("Create Product Error:", err);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error('Create Product Error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
-// GET ALL with filters
+// GET ALL (with filters)
 exports.getAllProducts = async (req, res) => {
   try {
-    const userId = req.user?._id; // get from token (if logged in)
+    const userId = req.user?._id;
     const { productCategory, timeTag, search } = req.query;
-    const filter = {};
 
+    const filter = {};
     if (productCategory) filter.productCategory = productCategory;
     if (timeTag) filter.timeTag = timeTag;
-    if (search) filter.productName = { $regex: search, $options: "i" };
+    if (search) filter.productName = { $regex: search, $options: 'i' };
 
     const products = await Product.find(filter).sort({ createdAt: -1 });
 
-    // If logged in, get user's favourites
     let favourites = [];
     if (userId) {
       favourites = await Favourite.find({ userId }).select('productId');
@@ -58,8 +68,8 @@ exports.getAllProducts = async (req, res) => {
 
     res.status(200).json({ success: true, products: productsWithFav });
   } catch (err) {
-    console.error("Get Products Error:", err);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error('Get Products Error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -67,20 +77,37 @@ exports.getAllProducts = async (req, res) => {
 exports.getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ message: "Product not found!" });
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
 
     res.status(200).json({ success: true, product });
   } catch (err) {
-    console.error("Get Product Error:", err);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error('Get Product Error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
 // UPDATE
 exports.updateProduct = async (req, res) => {
   try {
-    const { productName, productCategory, price, description, timeTag } = req.body;
-    const updateFields = { productName, productCategory, price, description, timeTag };
+    const {
+      productName,
+      productCategory,
+      price,
+      description,
+      timeTag,
+      ageRestriction,
+      outOfStock,
+    } = req.body;
+
+    const updateFields = {
+      productName,
+      productCategory,
+      price,
+      description,
+      timeTag,
+      ageRestriction,
+      outOfStock,
+    };
 
     if (req.file) {
       const imageUrl = await uploadImage.uploadSingleImageToFirebase(req.file);
@@ -88,12 +115,12 @@ exports.updateProduct = async (req, res) => {
     }
 
     const updated = await Product.findByIdAndUpdate(req.params.id, updateFields, { new: true });
-    if (!updated) return res.status(404).json({ message: "Product not found" });
+    if (!updated) return res.status(404).json({ success: false, message: 'Product not found' });
 
     res.status(200).json({ success: true, product: updated });
   } catch (err) {
-    console.error("Update Product Error:", err);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error('Update Product Error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -101,11 +128,11 @@ exports.updateProduct = async (req, res) => {
 exports.deleteProduct = async (req, res) => {
   try {
     const deleted = await Product.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ message: "Product not found" });
+    if (!deleted) return res.status(404).json({ success: false, message: 'Product not found' });
 
-    res.status(200).json({ success: true, message: "Product deleted" });
+    res.status(200).json({ success: true, message: 'Product deleted successfully' });
   } catch (err) {
-    console.error("Delete Product Error:", err);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error('Delete Product Error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

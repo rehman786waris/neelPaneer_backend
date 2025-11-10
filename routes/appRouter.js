@@ -37,10 +37,10 @@ router.put("/banners/:id", authenticate, upload.array("bannerImages", 10), banne
 router.delete("/banners/:id", authenticate, bannerController.deleteBanner);
 
 ///Products routes
-router.post('/products', authenticate, upload.single("productImage"), productController.createProduct);
-router.get('/products', authenticate, productController.getAllProducts); // optional ?productCategory=starter&timeTag=brunch
+router.post('/products', authenticate, upload.single('productImage'), productController.createProduct);
+router.get('/products', authenticate, productController.getAllProducts);
 router.get('/products/:id', authenticate, productController.getProductById);
-router.put('/products/:id', authenticate, upload.single("productImage"), productController.updateProduct);
+router.put('/products/:id', authenticate, upload.single('productImage'), productController.updateProduct);
 router.delete('/products/:id', authenticate, productController.deleteProduct);
 
 

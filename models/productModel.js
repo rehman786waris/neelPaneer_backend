@@ -1,15 +1,43 @@
+// models/productModel.js
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema(
   {
     productName: {
       type: String,
+      trim: true,
       required: [true, 'Product name is required'],
     },
     productCategory: {
       type: String,
       required: [true, 'Product category is required'],
-      enum: ['all','starter', 'main course', 'dessert', 'beverage'], // updated
+      enum: [
+        'all',
+        'chefsSpecials', 
+        'britishCurries',
+        'europeanDishes',
+        'sundries',
+        'sides',
+        'accompaniments',
+        'nonVegetarian',
+        'mixedVegStarters',
+        'fishStarters',
+        'tandooriSizzlers',
+        'biryaniDishes',
+        'spinachDishes',
+        'massalaDishes',
+        'baltiTawa',
+        'vegetarianSnacks',
+        'meatSnacks',
+        'seafoodSnacks',
+        'tandooriBread',
+        'kids',
+        'setMeals',
+        'softDrinks',
+        'beers',
+        'wine',
+      ],
+      default: 'all',
     },
     price: {
       type: Number,
@@ -18,7 +46,16 @@ const productSchema = new mongoose.Schema(
     },
     description: {
       type: String,
+      trim: true,
       required: [true, 'Product description is required'],
+    },
+    ageRestriction: {
+      type: Boolean,
+      default: false,
+    },
+    outOfStock: {
+      type: Boolean,
+      default: false,
     },
     productImage: {
       type: String,
