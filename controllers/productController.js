@@ -1,4 +1,3 @@
-// controllers/productController.js
 const Product = require('../models/productModel');
 const uploadImage = require('../utils/uploadImage');
 const Favourite = require('../models/favouriteModel');
@@ -14,6 +13,7 @@ exports.createProduct = async (req, res) => {
       timeTag,
       ageRestriction,
       outOfStock,
+      sauces, // 👈 Added here
     } = req.body;
 
     if (!req.file) {
@@ -21,6 +21,16 @@ exports.createProduct = async (req, res) => {
     }
 
     const imageUrl = await uploadImage.uploadSingleImageToFirebase(req.file);
+
+    // Handle sauces (optional)
+    let parsedSauces;
+    if (sauces) {
+      try {
+        parsedSauces = typeof sauces === 'string' ? JSON.parse(sauces) : sauces;
+      } catch (err) {
+        return res.status(400).json({ success: false, message: 'Invalid sauces format. Must be JSON.' });
+      }
+    }
 
     const newProduct = new Product({
       productName,
@@ -31,6 +41,7 @@ exports.createProduct = async (req, res) => {
       ageRestriction,
       outOfStock,
       productImage: imageUrl,
+      sauces: parsedSauces,
     });
 
     await newProduct.save();
@@ -97,6 +108,7 @@ exports.updateProduct = async (req, res) => {
       timeTag,
       ageRestriction,
       outOfStock,
+      sauces, // 👈 Added here
     } = req.body;
 
     const updateFields = {
@@ -109,6 +121,16 @@ exports.updateProduct = async (req, res) => {
       outOfStock,
     };
 
+    // Handle sauces update if provided
+    if (sauces) {
+      try {
+        updateFields.sauces = typeof sauces === 'string' ? JSON.parse(sauces) : sauces;
+      } catch (err) {
+        return res.status(400).json({ success: false, message: 'Invalid sauces format. Must be JSON.' });
+      }
+    }
+
+    // Handle new image upload
     if (req.file) {
       const imageUrl = await uploadImage.uploadSingleImageToFirebase(req.file);
       updateFields.productImage = imageUrl;

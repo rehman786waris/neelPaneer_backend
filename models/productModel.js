@@ -1,4 +1,3 @@
-// models/productModel.js
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema(
@@ -13,7 +12,7 @@ const productSchema = new mongoose.Schema(
       required: [true, 'Product category is required'],
       enum: [
         'all',
-        'chefsSpecials', 
+        'chefsSpecials',
         'britishCurries',
         'europeanDishes',
         'sundries',
@@ -65,6 +64,23 @@ const productSchema = new mongoose.Schema(
       type: String,
       enum: ['brunch', 'evening'],
       default: 'brunch',
+    },
+    // ✅ Optional sauces
+    sauces: {
+      type: [
+        {
+          name: {
+            type: String,
+            trim: true,
+            required: [true, 'Sauce name is required'],
+          },
+          price: {
+            type: Number,
+            min: [0, 'Sauce price must be a positive number'],
+          },
+        },
+      ],
+      default: undefined, // Optional
     },
   },
   { timestamps: true }
