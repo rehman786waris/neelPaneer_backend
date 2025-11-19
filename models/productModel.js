@@ -56,37 +56,34 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
+    // 🔥 IMAGE IS NOW OPTIONAL
     productImage: {
       type: String,
-      required: [true, 'Product image is required'],
+      default: null,
     },
+
     timeTag: {
       type: String,
       enum: ['brunch', 'evening'],
       default: 'brunch',
     },
-    // ✅ Optional sauces
+
+    // Optional sauces
     sauces: {
       type: [
         {
-          name: {
-            type: String,
-            trim: true,
-            required: [true, 'Sauce name is required'],
-          },
-          price: {
-            type: Number,
-            min: [0, 'Sauce price must be a positive number'],
-          },
+          name: { type: String, trim: true, required: true },
+          price: { type: Number, min: 0 },
         },
       ],
-      default: undefined, // Optional
+      default: undefined,
     },
   },
   { timestamps: true }
 );
 
-// Capitalize product name before saving
+// Capitalize product name
 productSchema.pre('save', function (next) {
   if (this.productName) {
     this.productName = this.productName

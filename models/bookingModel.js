@@ -44,11 +44,6 @@ const bookingSchema = new mongoose.Schema(
       min: [1, 'At least 1 guest is required'],
       max: [46, 'Cannot book more than 46 guests'],
     },
-    seatingPreference: {
-      type: String,
-      enum: ['indoor', 'outdoor'],
-      default: 'indoor',
-    },
     specialRequests: {
       type: String,
       default: '',

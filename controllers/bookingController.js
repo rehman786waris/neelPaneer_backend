@@ -129,7 +129,6 @@ exports.createBooking = async (req, res) => {
       date,
       timeSlot,
       numberOfGuests,
-      seatingPreference,
       specialRequests,
     } = req.body;
 
@@ -141,7 +140,7 @@ exports.createBooking = async (req, res) => {
     }
     if (numberOfGuests > MAX_ONLINE) {
       return res.status(400).json({
-        message: `Online bookings allowed for up to ${MAX_ONLINE} guests only. Please call for larger groups.`,
+        message: `Online bookings allowed for up to ${MAX_ONLINE} guests only. Please call 0161 972 5900 for larger groups.`,
       });
     }
 
@@ -184,7 +183,6 @@ exports.createBooking = async (req, res) => {
       date: m.toDate(),
       timeSlot,
       numberOfGuests,
-      seatingPreference,
       specialRequests,
     });
 
@@ -208,7 +206,6 @@ exports.updateBooking = async (req, res) => {
       email,
       phone,
       postcode,
-      seatingPreference,
       specialRequests,
     } = req.body;
 
@@ -266,7 +263,6 @@ exports.updateBooking = async (req, res) => {
       email,
       phone,
       postcode,
-      seatingPreference,
       specialRequests,
     });
 

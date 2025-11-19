@@ -2,6 +2,7 @@ const Product = require('../models/productModel');
 const uploadImage = require('../utils/uploadImage');
 const Favourite = require('../models/favouriteModel');
 
+
 // CREATE
 exports.createProduct = async (req, res) => {
   try {
@@ -13,16 +14,16 @@ exports.createProduct = async (req, res) => {
       timeTag,
       ageRestriction,
       outOfStock,
-      sauces, // 👈 Added here
+      sauces,
     } = req.body;
 
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'Product image is required.' });
+    // Upload image only if file exists
+    let imageUrl = null;
+    if (req.file) {
+      imageUrl = await uploadImage.uploadSingleImageToFirebase(req.file);
     }
 
-    const imageUrl = await uploadImage.uploadSingleImageToFirebase(req.file);
-
-    // Handle sauces (optional)
+    // Parse sauces if provided
     let parsedSauces;
     if (sauces) {
       try {
@@ -51,6 +52,7 @@ exports.createProduct = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
 
 // GET ALL (with filters)
 exports.getAllProducts = async (req, res) => {
@@ -108,7 +110,7 @@ exports.updateProduct = async (req, res) => {
       timeTag,
       ageRestriction,
       outOfStock,
-      sauces, // 👈 Added here
+      sauces,
     } = req.body;
 
     const updateFields = {
@@ -121,7 +123,7 @@ exports.updateProduct = async (req, res) => {
       outOfStock,
     };
 
-    // Handle sauces update if provided
+    // Handle sauces
     if (sauces) {
       try {
         updateFields.sauces = typeof sauces === 'string' ? JSON.parse(sauces) : sauces;
@@ -130,7 +132,7 @@ exports.updateProduct = async (req, res) => {
       }
     }
 
-    // Handle new image upload
+    // Upload new image if provided
     if (req.file) {
       const imageUrl = await uploadImage.uploadSingleImageToFirebase(req.file);
       updateFields.productImage = imageUrl;
@@ -145,6 +147,7 @@ exports.updateProduct = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
 
 // DELETE
 exports.deleteProduct = async (req, res) => {
